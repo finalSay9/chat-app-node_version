@@ -3,6 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../db/pool');
+const { error } = require('console');
 
 
 const router = express.Router();
@@ -26,7 +27,7 @@ router.post('/register', async (req, res) => {
     const { username, email, password } = req.body
 
     if( !username || !email || !password ){
-        return res.status(400).json(message: "all filled required")
+        return res.status(400).json({error: "all filled required"})
     }
 
     if(password.length < 6) {
