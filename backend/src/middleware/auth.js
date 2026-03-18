@@ -12,7 +12,7 @@ module.export = function authMiddleware(req,res,next) {
         request.user = decode;
         next();
     } catch (error) {
-        
+        return res.status(403).json({ error: 'Invalid or expired token' });   
     }
 
 }
