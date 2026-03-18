@@ -65,4 +65,41 @@ router.post('/login', async (req, res) => {
     if(!email || !password) {
         return res.status(400).json({error: 'email and password are required'})
     }
+
+    try {
+        const result = await pool.query(
+            'SELECT * FROM users WHERE email = $1',
+            [email]
+
+        );
+
+        const user = result.rows[0];
+
+        if (!user) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const validPassword = await bcrypt.compare(password, user.password_hash);
+
+        if (!validPassword) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const token = generateToken(user);
+
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+            }
+        })
+
+
+    } catch (err) {
+         console.error(err);
+         res.status(500).json({ error: 'Server error' });
+        
+    }
 })
