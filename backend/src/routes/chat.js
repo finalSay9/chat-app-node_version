@@ -4,17 +4,12 @@ const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
-// All routes below require a valid JWT
 router.use(authMiddleware);
 
-// GET /api/chat/users — find users to start a DM with
 router.get('/users', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, username, is_online 
-       FROM users 
-       WHERE id != $1 
-       ORDER BY username ASC`,
+      `SELECT id, username, is_online FROM users WHERE id != $1 ORDER BY username ASC`,
       [req.user.id]
     );
     res.json(result.rows);
@@ -24,13 +19,11 @@ router.get('/users', async (req, res) => {
   }
 });
 
-// POST /api/chat/conversations — start or get existing DM
 router.post('/conversations', async (req, res) => {
   const { recipientId } = req.body;
   const senderId = req.user.id;
 
   try {
-    // Check if a conversation already exists between these two users
     const existing = await pool.query(
       `SELECT c.id FROM conversations c
        JOIN conversation_participants cp1 ON cp1.conversation_id = c.id AND cp1.user_id = $1
@@ -42,7 +35,6 @@ router.post('/conversations', async (req, res) => {
       return res.json({ conversationId: existing.rows[0].id });
     }
 
-    // Create new conversation
     const convo = await pool.query(
       'INSERT INTO conversations DEFAULT VALUES RETURNING id'
     );
@@ -60,7 +52,6 @@ router.post('/conversations', async (req, res) => {
   }
 });
 
-// GET /api/chat/conversations — get all my DMs
 router.get('/conversations', async (req, res) => {
   try {
     const result = await pool.query(
@@ -90,12 +81,10 @@ router.get('/conversations', async (req, res) => {
   }
 });
 
-// GET /api/chat/conversations/:id/messages — load message history
 router.get('/conversations/:id/messages', async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Verify user is a participant
     const check = await pool.query(
       'SELECT 1 FROM conversation_participants WHERE conversation_id = $1 AND user_id = $2',
       [id, req.user.id]
