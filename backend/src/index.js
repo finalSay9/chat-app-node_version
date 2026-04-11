@@ -13,32 +13,22 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173', // React dev server port
+    origin: '*',
     methods: ['GET', 'POST'],
   },
 });
 
-// Middleware
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-// Debug - check what's being imported
-// console.log('authRoutes:', typeof authRoutes, authRoutes);
-// console.log('chatRoutes:', typeof chatRoutes, chatRoutes);
-// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 
-
-// Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Socket.IO
 initSocket(io);
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-

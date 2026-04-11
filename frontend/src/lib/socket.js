@@ -2,22 +2,35 @@ import { io } from 'socket.io-client'
 
 let socket = null
 
-export function getSocket() {
-  if (!socket) {
-    socket = io('http://localhost:3001', {
-      auth: { token: localStorage.getItem('token') },
-      autoConnect: false,
-    })
+export function connectSocket() {
+  const token = localStorage.getItem('token')
+
+  if (socket) {
+    socket.disconnect()
+    socket = null
   }
+
+  // Use window.location so it always matches whatever host the browser is on
+  const URL = `${window.location.protocol}//${window.location.hostname}:3001`
+
+  socket = io(URL, {
+    auth: { token },
+  })
+
+  socket.on('connect', () => {
+    console.log('Socket connected:', socket.id)
+  })
+
+  socket.on('connect_error', (err) => {
+    console.error('Socket connection error:', err.message)
+  })
+
   return socket
 }
 
-export function connectSocket() {
-  const s = getSocket()
-  if (!s.connected) s.connect()
-  return s
-}
-
 export function disconnectSocket() {
-  if (socket?.connected) socket.disconnect()
+  if (socket) {
+    socket.disconnect()
+    socket = null
+  }
 }

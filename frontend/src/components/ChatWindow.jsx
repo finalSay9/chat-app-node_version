@@ -9,28 +9,47 @@ export default function ChatWindow({ conversation, socket, onBack }) {
   const [input, setInput] = useState('')
   const bottomRef = useRef(null)
 
-  // Load message history
+  // Load message history when conversation changes
   useEffect(() => {
     if (!conversation) return
+    setMessages([]) // clear old messages
     api.get(`/chat/conversations/${conversation.id}/messages`)
       .then(res => setMessages(res.data))
       .catch(console.error)
-  }, [conversation])
+  }, [conversation?.id])
 
-  // Join socket room + listen for new messages
+  // Join socket room and listen for messages
   useEffect(() => {
     if (!socket || !conversation) return
+
+    // Join the room
     socket.emit('conversation:join', conversation.id)
+    console.log('Joining room:', conversation.id)
 
     function onMessage(msg) {
+      console.log('Received message:', msg)
       if (msg.conversation_id === conversation.id) {
-        setMessages(prev => [...prev, msg])
+        setMessages(prev => {
+          // Prevent duplicate messages
+          if (prev.find(m => m.id === msg.id)) return prev
+          return [...prev, msg]
+        })
       }
     }
 
     socket.on('message:received', onMessage)
-    return () => socket.off('message:received', onMessage)
-  }, [socket, conversation])
+
+    // Rejoin room if socket reconnects
+    function onReconnect() {
+      socket.emit('conversation:join', conversation.id)
+    }
+    socket.on('connect', onReconnect)
+
+    return () => {
+      socket.off('message:received', onMessage)
+      socket.off('connect', onReconnect)
+    }
+  }, [socket, conversation?.id])
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -40,6 +59,8 @@ export default function ChatWindow({ conversation, socket, onBack }) {
   function sendMessage(e) {
     e.preventDefault()
     if (!input.trim() || !socket) return
+
+    console.log('Sending message to room:', conversation.id)
     socket.emit('message:send', {
       conversationId: conversation.id,
       content: input.trim(),
